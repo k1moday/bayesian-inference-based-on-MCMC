@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BNetNodes>
+   <A Range="2">
+      <Parents num="0"/>
+      <CPT_Col>
+         <CP>0.475</CP>
+      </CPT_Col>
+   </A>
+   <B Range="2">
+      <Parents num="1">
+         <A/>
+      </Parents>
+      <CPT_Col>
+         <CP>0.50952</CP>
+         <CP>0.36316</CP>
+      </CPT_Col>
+   </B>
+   <C Range="2">
+      <Parents num="1">
+         <A/>
+      </Parents>
+      <CPT_Col>
+         <CP>0.40476</CP>
+         <CP>0.66842</CP>
+      </CPT_Col>
+   </C>
+   <D Range="2">
+      <Parents num="2">
+         <B/>
+         <C/>
+      </Parents>
+      <CPT_Col>
+         <CP>0.3913</CP>
+         <CP>0.56061</CP>
+         <CP>0.55208</CP>
+         <CP>0.6125</CP>
+      </CPT_Col>
+   </D>
+</BNetNodes>
