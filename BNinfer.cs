@@ -12,6 +12,9 @@
 		}
 
 		public abstract double GetBelief(string x, string o);
+		public abstract double GetBelief_WithoutBup(string x);
+		public abstract double GetBelief_Multistate(string x, string o);
+
 
 		protected BNet m_net;
 	}
@@ -41,6 +44,7 @@
 
 		public override double GetBelief(string x, string o)//求解数据的输入
 		{
+
 			m_net.ResetNodes();
 
 			double norm = 1.0;
@@ -57,6 +61,33 @@
 			return Sum(0, 0) / norm;
 		}
 
+		public override double GetBelief_WithoutBup(string x)
+        {
+			m_net.ResetNodes();
+
+			double norm = 1.0;
+
+			m_net.SetNodes(x);
+			return Sum(0, 0) / norm;
+		}
+		public override double GetBelief_Multistate(string x, string o)//求解数据的输入
+		{
+
+			m_net.ResetNodes();
+
+			double norm = 1.0;
+
+			if (o.Length > 0)
+			{
+				//将字符串输入，在SetNodes函数中将字符串分割后赋值到该节点
+				m_net.SetNodes(o);
+				norm = Sum_Multistate(0, 0);
+			}
+
+			m_net.SetNodes(x);
+
+			return Sum_Multistate(0, 0) / norm;
+		}
 		private void PrepareBuckets()
 		{
 			ArrayList nodes = m_net.Nodes;
@@ -126,6 +157,73 @@
 			return pr;
 		}
 
+		protected double Sum_Multistate(int nid, int para)
+		{
+			BNode theNode = (BNode)m_net.Nodes[nid];
+			Bucket theBuck = (Bucket)m_buckets[nid];
+
+			int p_cnt = 1;
+			foreach(BNode node in theNode.Parents)
+			p_cnt *= node.Range ;
+
+			int cond = 0;
+
+			if (p_cnt != 1)
+				cond = para % p_cnt ;//防止溢出
+			else cond = 0;
+
+			double pr = 0.0;	
+
+			for (int e = 0; e < theNode.Range; ++e)
+			{
+				if (theNode.Evidence != -1 && theNode.Evidence != e)
+					continue;
+
+				double tmpPr = theNode.CPT[cond, e];
+
+				foreach (Bucket nxtBuck in theBuck.childBuckets)
+				{
+					int next_para = 0;
+					int cond_new = 1;
+					int cond_pos = 1;
+					for (int j = 0; j < nxtBuck.parentNodes.Count; ++j)
+					{
+						BNode pnode = (BNode)nxtBuck.parentNodes[j];
+
+						int pos = theBuck.parentNodes.IndexOf(pnode);
+
+						int k ;
+						cond_new = 1;
+
+						for (k = 0; k < j; ++k)
+						{
+							BNode panode = (BNode)nxtBuck.parentNodes[k];
+							cond_new *= panode.Range;
+						}
+
+						if (pos >= 0) 
+						{
+							cond_pos = 1;
+							for (k = 0; k < pos ; ++k)
+							{
+								
+								BNode panode = (BNode)theBuck.parentNodes[k];
+								cond_pos *= panode.Range;
+							}
+							next_para += para / cond_pos * cond_new;
+						}
+						else
+						next_para += e * cond_new;
+					}
+
+					tmpPr *= Sum_Multistate(nxtBuck.id, next_para);
+				}
+
+				pr += tmpPr;
+			}
+
+			return pr;
+		}
 		private int FindMaxNodeId(ArrayList nodes)
 		{
 			int max = -1;
@@ -148,31 +246,40 @@
 
 		}
 
-		private class Bucket
+		public override double GetBelief_Multistate(string x, string o)
 		{
-			public Bucket(int i)
-			{
-				id = i;
-				parentNodes = new ArrayList();
-				childBuckets = new ArrayList();
-			}
-
-			public int id;
-			public ArrayList parentNodes;
-			public ArrayList childBuckets;
-
+			return 0;
 		}
-
-
 		public override double GetBelief(string x, string o)
 		{
 			m_net.ResetNodes();
-
-			//在马尔科夫链的抽样算法中，由于将对所求节点进行抽样，所以只对条件进行赋值
+	
+			//在吉布斯抽样算法中，由于将对所求节点进行抽样，所以只对条件进行赋值
 			if (o.Length > 0)
 			{
 				m_net.SetNodes(o);
 			}
+
+			int queryid = 0;
+			int querycon;
+
+			string[] pair = x.Split('=');
+			foreach (BNode node in m_net.Nodes)
+			{
+				if (pair.Length == 2 && node.Name == pair[0].Trim().ToLower())
+				{
+					queryid = node.ID;
+				}
+			}
+
+			querycon = Convert.ToInt32(pair[1]);
+
+			return Sampling(queryid, querycon);
+		}
+
+		public override double GetBelief_WithoutBup(string x)
+		{
+			m_net.ResetNodes();
 
 			int queryid = 0;
 			int querycon;
@@ -227,13 +334,16 @@
 						{
 
 							foreach (BNode node in theNode.Parents)
-							{	
-								cond = cond * node.Range  + the_sample[node.ID];
+							{
+								cond = cond * 2 + the_sample[node.ID];
 							}
 							multipr1 = multipr1 * theNode.CPT[cond, 0];
 							multipr2 = multipr2 * theNode.CPT[cond, 1];
 						}
-
+						else {
+							multipr1 = multipr1 * theNode.CPT[0, 0];
+							multipr2 = multipr2 * theNode.CPT[0, 1];
+							}
 
 						if (theNode.children.Count != 0)
 						{
@@ -262,9 +372,11 @@
 
 						}
 						this_pr = multipr1 / (multipr1 + multipr2);
+
 						Random random = new Random(GetRandomSeedbyGuid());
 						int sample = random.Next();
-						if (sample % 10000 > this_pr * 10000)
+						
+						if (sample % 10000000  > this_pr * 10000000 )
 							nxt_sample[j] = 1;
 						else
 							nxt_sample[j] = 0;
@@ -285,7 +397,7 @@
 		{
 
 			ArrayList nodes = m_net.Nodes;
-			the_sample = new int[nodes.Count + 1];
+			the_sample = new int[nodes.Count];
 			for (int i = nodes.Count - 1; i >= 0; --i)
 			{
 				 

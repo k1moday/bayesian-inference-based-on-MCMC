@@ -3,14 +3,14 @@ using System.Collections;
 using System.Windows.Forms;
 using BELIEF_NET;
 
-internal class App
+/*internal class App
 {
 	internal static void Main()
 	{
 		BNForm frmMain = new BNForm();
 		Application.Run(frmMain);
 	}
-}
+}*/
 
 public class BNForm : Form
 {
