@@ -15,7 +15,7 @@
 		public abstract double GetBelief_WithoutBup(string x);
 		public abstract double GetBelief_Multistate(string x, string o);
 
-
+		
 		protected BNet m_net;
 	}
 
@@ -301,8 +301,11 @@
 		protected double Sampling(int prob, int probcon)
 		{
 			mq = 0;
-			int T = 100000;//采样个数
+			int T = 10000;//采样个数
 			First_Sampling();//第一次随机抽样
+
+			Random random = new Random(GetRandomSeedbyGuid());
+			int sample = random.Next();
 
 			if (the_sample[prob] == probcon)
 				mq = mq + 1;
@@ -327,9 +330,12 @@
 					int cond = 0;
 					multipr1 = 1;
 					multipr2 = 1;
+					int flag = 0;
+
 
 					if (theNode.Evidence == -1)
 					{
+						
 						if (theNode.Parents.Count != 0)
 						{
 
@@ -345,6 +351,23 @@
 							multipr2 = multipr2 * theNode.CPT[0, 1];
 							}
 
+						foreach (string item in strs)
+						{
+							if (theNode.Name.Contains(item))
+							{
+								this_pr = theNode.CPT[cond, 0];
+								random = new Random(GetRandomSeedbyGuid());
+								sample = random.Next();
+								if (sample % 10000000 > this_pr * 10000000)
+									nxt_sample[j] = 1;
+								else
+									nxt_sample[j] = 0;
+								flag = 1;
+							}
+						}
+						if (flag == 1)
+							continue;
+						
 						if (theNode.children.Count != 0)
 						{
 							int cond1 = 0;
@@ -373,9 +396,9 @@
 						}
 						this_pr = multipr1 / (multipr1 + multipr2);
 
-						Random random = new Random(GetRandomSeedbyGuid());
-						int sample = random.Next();
-						
+						random = new Random(GetRandomSeedbyGuid());
+						sample = random.Next();
+
 						if (sample % 10000000  > this_pr * 10000000 )
 							nxt_sample[j] = 1;
 						else
@@ -392,6 +415,7 @@
 
 		}
 
+		private string[] strs = { "an", "or" };
 
 		private void First_Sampling()
 		{

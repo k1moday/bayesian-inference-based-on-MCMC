@@ -3,14 +3,14 @@ using System.Collections;
 using System.Windows.Forms;
 using BELIEF_NET;
 
-/*internal class App
+internal class App
 {
 	internal static void Main()
 	{
 		BNForm frmMain = new BNForm();
 		Application.Run(frmMain);
 	}
-}*/
+}
 
 public class BNForm : Form
 {
@@ -159,7 +159,7 @@ public class BNForm : Form
 		m_net.Build(tbXmlFile.Text);
 		m_net.PrintNet("BNet_layout.txt");
 
-		m_infer = new BElim(m_net);//两种算法需要哪种更改类名即可更换调用
+		m_infer = new BMcmc(m_net);//两种算法需要哪种更改类名即可更换调用
 
 		lbBNodes.Items.Clear();
 		foreach (BNode node in m_net.Nodes)
@@ -182,7 +182,7 @@ public class BNForm : Form
 
 		if (IsValid(x, obs))
 		{
-			double pr = m_infer.GetBelief(x, obs);//得到条件和查询目标后，进行推理计算
+			double pr = m_infer.GetBelief(x, obs);//得到条件和查询目标后，进行推理计算，根据情况和需求进行更改
 
 			string out1 = " P( " + x;
 			out1 += (obs.Length > 0) ? " | " + obs + " )" : " )";
